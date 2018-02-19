@@ -248,16 +248,19 @@ class ExternalModel(Dummy):
           the second item will be the output of this model given the specified
           inputs
     """
+    self.raiseADebug('TIMING ExternalModel "{}" evaluateSampleStart: jobID "{}"'.format(self.name,kwargs['prefix']))
     Input = self.createNewInput(myInput, samplerType, **kwargs)
     inRun = copy.copy(self._manipulateInput(Input[0][0]))
     # collect results from model run
+    self.raiseADebug('TIMING ExternalModel "{}" evaluateSampleRun: jobID "{}"'.format(self.name,kwargs['prefix']))
     result,instSelf = self._externalRun(inRun,Input[1],) #entry [1] is the external model object; it doesn't appear to be needed
+    self.raiseADebug('TIMING ExternalModel "{}" evaluateSampleFinish: jobID "{}"'.format(self.name,kwargs['prefix']))
     # build realization
     # assure rlz has all metadata
     rlz = dict((var,np.atleast_1d(kwargs[var])) for var in kwargs.keys())
     # update rlz with input space from inRun and output space from result
     rlz.update(dict((var,np.atleast_1d(inRun[var] if var in kwargs['SampledVars'] else result[var])) for var in set(result.keys()+inRun.keys())))
-    #rlz.update(dict((var,np.atleast_1d(inRun[var] if var in inRun else result[var])) for var in set(result.keys()+inRun.keys())))
+    self.raiseADebug('TIMING ExternalModel "{}" evaluateSampleReturn: jobID "{}"'.format(self.name,kwargs['prefix']))
     return rlz
 
   def collectOutput(self,finishedJob,output,options=None):

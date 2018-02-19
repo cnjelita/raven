@@ -483,6 +483,7 @@ class EnsembleModel(Dummy):
         a mandatory key is the sampledVars'that contains a dictionary {'name variable':value}
       @ Out, returnValue, dict, This holds the output information of the evaluated sample.
     """
+    self.raiseADebug('TIMING EnsembleModel "{}" evaluateSampleStart: jobID "{}"'.format(self.name,kwargs['prefix']))
     kwargsKeys = kwargs.keys()
     kwargsKeys.pop(kwargsKeys.index("jobHandler"))
     kwargsToKeep = { keepKey: kwargs[keepKey] for keepKey in kwargsKeys}
@@ -490,7 +491,10 @@ class EnsembleModel(Dummy):
     Input = self.createNewInput(myInput[0], samplerType, **kwargsToKeep)
 
     ## Unpack the specifics for this class, namely just the jobHandler
+    self.raiseADebug('TIMING EnsembleModel "{}" evaluateSampleRun: jobID "{}"'.format(self.name,kwargs['prefix']))
     returnValue = (Input,self._externalRun(Input,jobHandler))
+    self.raiseADebug('TIMING EnsembleModel "{}" evaluateSampleFinish: jobID "{}"'.format(self.name,kwargs['prefix']))
+    self.raiseADebug('TIMING EnsembleModel "{}" evaluateSampleReturn: jobID "{}"'.format(self.name,kwargs['prefix']))
     return returnValue
 
   def submit(self,myInput,samplerType,jobHandler,**kwargs):

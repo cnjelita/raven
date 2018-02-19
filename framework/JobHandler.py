@@ -346,8 +346,10 @@ class JobHandler(MessageHandler.MessageUser):
     """
     with self.__queueLock:
       if not runner.clientRunner:
+        self.raiseADebug('TIMING JobHandler "JobHandler" putOnNormalQueue: jobID "{}"'.format(runner.metadata['prefix']))
         self.__queue.append(runner)
       else:
+        self.raiseADebug('TIMING JobHandler "JobHandler" putOnClientQueue: jobID "{}"'.format(runner.metadata['prefix']))
         self.__clientQueue.append(runner)
       self.__submittedJobs.append(runner.identifier)
 
@@ -530,6 +532,8 @@ class JobHandler(MessageHandler.MessageUser):
           continue
 
         finished.append(run)
+        # TIMING this is when the jobhandler notices the job is finished, not when it actually finished!
+        #self.raiseADebug('TIMING JobHandler "JobHandler" NoticeFinishedWaitCollect: jobID "{}"'.format(run.metadata['prefix']))
         if removeFinished:
           runsToBeRemoved.append(i)
           self.__checkAndRemoveFinished(run)
@@ -635,7 +639,7 @@ class JobHandler(MessageHandler.MessageUser):
               item.args[3].update(kwargs)
 
             self.__running[i] = item
-            ##FIXME this call is really expensive; can it be reduced?
+            self.raiseADebug('TIMING JobHandler "JobHandler" startingNormalRun: jobID "{}"'.format(item.metadata['prefix']))
             self.__running[i].start()
             self.__nextId += 1
           else:
@@ -648,6 +652,7 @@ class JobHandler(MessageHandler.MessageUser):
         for i in emptySlots:
           if len(self.__clientQueue) > 0:
             self.__clientRunning[i] = self.__clientQueue.popleft()
+            self.raiseADebug('TIMING JobHandler "JobHandler" startingClientRun: jobID "{}"'.format(self.__clientRunning[i].metadata['prefix']))
             self.__clientRunning[i].start()
             self.__nextId += 1
           else:
@@ -672,6 +677,7 @@ class JobHandler(MessageHandler.MessageUser):
           ## it by calling numRunning.
           with self.__queueLock:
             self.__finished.append(run)
+            self.raiseADebug('TIMING JobHandler "JobHandler" finishedWaitCollect: jobID "{}"'.format(run.metadata['prefix']))
             runList[i] = None
 
   def startingNewStep(self):

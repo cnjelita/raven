@@ -595,6 +595,7 @@ class MultiRun(SingleRun):
       if inDictionary[self.samplerType].amIreadyToProvideAnInput():
         try:
           newInput = self._findANewInputToRun(inDictionary[self.samplerType], inDictionary['Model'], inDictionary['Input'], inDictionary['Output'])
+          self.raiseADebug('TIMING STEP "{}" submitting: jobID "{}"'.format(self.name, inDictionary[self.samplerType].inputInfo['prefix']))
           if isinstance(inDictionary["Model"], Models.EnsembleModel):
             inDictionary["Model"].submitAsClient(newInput, inDictionary[self.samplerType].type, inDictionary['jobHandler'], **copy.deepcopy(inDictionary[self.samplerType].inputInfo))
           else:
@@ -629,9 +630,11 @@ class MultiRun(SingleRun):
         self.counter +=1
         # collect run if it succeeded
         if finishedJob.getReturnCode() == 0:
+          self.raiseADebug('TIMING STEP "{}" collected: StepCounter "{}" JobID "{}" Status "PASS"'.format(self.name,self.counter,finishedJob.identifier))
           for myLambda, outIndex in self._outputCollectionLambda:
             myLambda([finishedJob,outputs[outIndex]])
             self.raiseADebug('Just collected output {0:2} of the input {1:6}'.format(outIndex+1,self.counter))
+          self.raiseADebug('TIMING STEP "{}" collectedDone: JobID "{}"'.format(self.name,finishedJob.identifier))
         # pool it if it failed, before we loop back to "while True" we'll check for these again
         else:
           self.raiseADebug('the job "'+finishedJob.identifier+'" has failed.')
@@ -641,6 +644,8 @@ class MultiRun(SingleRun):
               #add run to a pool that can be sent to the sampler later
               self.failedRuns.append(copy.copy(finishedJob))
           else:
+            self.raiseADebug('TIMING STEP "{}" collected: StepCounter "{}" JobID "{}" Status "FAIL"'.format(self.name, self.counter,finishedJob.identifier))
+            self.raiseADebug('TIMING STEP "{}" collectedDone: JobID "{}"'.format(self.name,finishedJob.identifier))
             if finishedJob.identifier not in self.failureHandling['jobRepetitionPerformed']:
               self.failureHandling['jobRepetitionPerformed'][finishedJob.identifier] = 1
             if self.failureHandling['jobRepetitionPerformed'][finishedJob.identifier] <= self.failureHandling['repetitions']:
@@ -672,6 +677,7 @@ class MultiRun(SingleRun):
           if sampler.amIreadyToProvideAnInput():
             try:
               newInput = self._findANewInputToRun(sampler, model, inputs, outputs)
+              self.raiseADebug('TIMING STEP "{}" submitting: jobID "{}"'.format(self.name, inDictionary[self.samplerType].inputInfo['prefix']))
               if isEnsemble:
                 model.submitAsClient(newInput, inDictionary[self.samplerType].type, jobHandler, **copy.deepcopy(sampler.inputInfo))
               else:

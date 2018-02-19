@@ -411,6 +411,7 @@ class Code(Model):
           the second item will be the output of this model given the specified
           inputs
     """
+    self.raiseADebug('TIMING CodeModel "{}" evaluateSampleStart: jobID "{}"'.format(self.name,kwargs['prefix']))
     inputFiles = self.createNewInput(myInput, samplerType, **kwargs)
     self.currentInputFiles, metaData = (copy.deepcopy(inputFiles[0]),inputFiles[1]) if type(inputFiles).__name__ == 'tuple' else (inputFiles, None)
     returnedCommand = self.code.genCommand(self.currentInputFiles,self.executable, flags=self.clargs, fileArgs=self.fargs, preExec=self.preExec)
@@ -487,8 +488,10 @@ class Code(Model):
         localenv[key]=str(value)
     ## This code should be evaluated by the job handler, so it is fine to wait
     ## until the execution of the external subprocess completes.
+    self.raiseADebug('TIMING CodeModel "{}" evaluateSampleRun: jobID "{}"'.format(self.name,kwargs['prefix']))
     process = utils.pickleSafeSubprocessPopen(command, shell=True, stdout=outFileObject, stderr=outFileObject, cwd=localenv['PWD'], env=localenv)
     process.wait()
+    self.raiseADebug('TIMING CodeModel "{}" evaluateSampleFinish: jobID "{}"'.format(self.name,kwargs['prefix']))
 
     returnCode = process.returncode
     # procOutput = process.communicate()[0]
@@ -573,6 +576,7 @@ class Code(Model):
       returnValue = (kwargs['SampledVars'],returnDict)
       exportDict = self.createExportDictionary(returnValue)
 
+      self.raiseADebug('TIMING CodeModel "{}" evaluateSampleReturn: jobID "{}" status "PASS"'.format(self.name,kwargs['prefix']))
       return exportDict
 
     else:
@@ -584,6 +588,7 @@ class Code(Model):
         self.raiseAMessage(" No output " + absOutputFile)
 
       ## If you made it here, then the run must have failed
+      self.raiseADebug('TIMING CodeModel "{}" evaluateSampleReturn: jobID "{}" status "FAIL"'.format(self.name,kwargs['prefix']))
       return None
 
   def createExportDictionary(self, evaluation):
