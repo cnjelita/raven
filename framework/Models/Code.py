@@ -598,10 +598,6 @@ class Code(Model):
         for f in fileList:
           os.remove(f)
 
-      returnDict.update(kwargs)
-      returnValue = (kwargs['SampledVars'],returnDict)
-      exportDict = self.createExportDictionary(returnValue)
-
       self.raiseADebug('TIMING CodeModel "{}" evaluateSampleReturn: jobID "{}" status "PASS"'.format(self.name,kwargs['prefix']))
       return exportDict
 
