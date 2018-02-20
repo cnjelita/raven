@@ -596,10 +596,7 @@ class MultiRun(SingleRun):
         try:
           newInput = self._findANewInputToRun(inDictionary[self.samplerType], inDictionary['Model'], inDictionary['Input'], inDictionary['Output'])
           self.raiseADebug('TIMING STEP "{}" submitting: jobID "{}"'.format(self.name, inDictionary[self.samplerType].inputInfo['prefix']))
-          if isinstance(inDictionary["Model"], Models.EnsembleModel):
-            inDictionary["Model"].submitAsClient(newInput, inDictionary[self.samplerType].type, inDictionary['jobHandler'], **copy.deepcopy(inDictionary[self.samplerType].inputInfo))
-          else:
-            inDictionary["Model"].submit(newInput, inDictionary[self.samplerType].type, inDictionary['jobHandler'], **copy.deepcopy(inDictionary[self.samplerType].inputInfo))
+          inDictionary["Model"].submit(newInput, inDictionary[self.samplerType].type, inDictionary['jobHandler'], **copy.deepcopy(inDictionary[self.samplerType].inputInfo))
           self.raiseADebug('Submitted input '+str(inputIndex+1))
         except utils.NoMoreSamplesNeeded:
           self.raiseAMessage('Sampler returned "NoMoreSamplesNeeded".  Continuing...')
@@ -678,10 +675,7 @@ class MultiRun(SingleRun):
             try:
               newInput = self._findANewInputToRun(sampler, model, inputs, outputs)
               self.raiseADebug('TIMING STEP "{}" submitting: jobID "{}"'.format(self.name, inDictionary[self.samplerType].inputInfo['prefix']))
-              if isEnsemble:
-                model.submitAsClient(newInput, inDictionary[self.samplerType].type, jobHandler, **copy.deepcopy(sampler.inputInfo))
-              else:
-                model.submit(newInput, inDictionary[self.samplerType].type, jobHandler, **copy.deepcopy(sampler.inputInfo))
+              model.submit(newInput, inDictionary[self.samplerType].type, jobHandler, **copy.deepcopy(sampler.inputInfo))
             except utils.NoMoreSamplesNeeded:
               self.raiseAMessage('Sampler returned "NoMoreSamplesNeeded".  Continuing...')
               break
