@@ -516,6 +516,7 @@ class DataSet(DataObject):
           if not noData and pivot in self._data.dims:
             del self._data[pivot] # = self._data.drop(pivot,dim
       # TODO remove references from general metadata?
+    # if scaling factor exists for this variable, remove it
     if self._scaleFactors is not None:
       self._scaleFactors.pop(variable,None)
     #either way reset kdtree
@@ -565,9 +566,9 @@ class DataSet(DataObject):
     self._data = None
     self._collector = None
     self._meta = {}
-    # TODO others?
     self._alignedIndexes = {}
     self._scaleFactors = {}
+    # TODO others?
 
   def sliceByIndex(self,index):
     """
@@ -933,7 +934,7 @@ class DataSet(DataObject):
       # TODO Metadata update?
       # merge can change dtypes b/c no NaN int type: self._data.merge(new,inplace=True)
       self._data = xr.concat([self._data,new],dim=self.sampleTag)
-    # set up scaling factors
+    # set up scaling factors -> this is time consuming!  Do it when needed, instead
     self._setScalingFactors()
     return new
 
@@ -1349,6 +1350,8 @@ class DataSet(DataObject):
     assert(self._data is not None)
     # TODO this could be slow, should do KD tree instead
     mask = 1.0
+    # if not set, set scaling factors
+    self._setScalingFactors(force=False)
     for var,val in match.items():
       # float instances are relative, others are absolute
       if mathUtils.isAFloatOrInt(val):
@@ -1520,23 +1523,26 @@ class DataSet(DataObject):
         val = rlz[name]
         self.types[v] = self._getCompatibleType(val)
 
-  def _setScalingFactors(self,var=None):
+  def _setScalingFactors(self,var=None,force=True):
     """
       Sets the scaling factors for the data (mean, scale).
       @ In, var, str, optional, if given then will only set factors for "var"
+      @ In, force, bool, optional, if True then overwrite existing factors (otherwise set missing ones)
       @ Out, None
     """
     if var is None:
       # clear existing factors and set list to "all"
-      self._scaleFactors = {}
       varList = self.getVars()
+      if force:
+        self._scaleFactors = {}
     else:
       # clear existing factor and reset variable scale, if existing
       varList = [var]
-      try:
-        del self._scaleFactors[var]
-      except KeyError:
-        pass
+      if force:
+        try:
+          del self._scaleFactors[var]
+        except KeyError:
+          pass
     # TODO someday make KDTree too!
     assert(self._data is not None) # TODO check against collector entries?
     for var in varList:
