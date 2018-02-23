@@ -346,10 +346,12 @@ class JobHandler(MessageHandler.MessageUser):
     """
     with self.__queueLock:
       if not runner.clientRunner:
-        self.raiseADebug('TIMING JobHandler "JobHandler" putOnNormalQueue: jobID "{}"'.format(runner.metadata['prefix']))
+        if runner.metadata is not None:
+          self.raiseADebug('TIMING JobHandler "JobHandler" putOnNormalQueue: jobID "{}"'.format(runner.metadata['prefix']))
         self.__queue.append(runner)
       else:
-        self.raiseADebug('TIMING JobHandler "JobHandler" putOnClientQueue: jobID "{}"'.format(runner.metadata['prefix']))
+        if runner.metadata is not None:
+          self.raiseADebug('TIMING JobHandler "JobHandler" putOnClientQueue: jobID "{}"'.format(runner.metadata['prefix']))
         self.__clientQueue.append(runner)
       self.__submittedJobs.append(runner.identifier)
 
