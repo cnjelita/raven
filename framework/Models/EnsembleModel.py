@@ -650,6 +650,7 @@ class EnsembleModel(Dummy):
           #if modelIn not in modelsOnHold:
           # get job that just finished to gather the results
           finishedRun = jobHandler.getFinished(jobIdentifier = modelIn+utils.returnIdSeparator()+identifier, uniqueHandler=self.name+identifier)
+          print('DEBUGG finishedRun:',finishedRun)
           self.raiseADebug('TIMING ensembleStep "{}" collected: JobID "{}"'.format(self.name,finishedRun.identifier))
           evaluation = finishedRun[0].getEvaluation()
           if isinstance(evaluation, Runners.Error):
