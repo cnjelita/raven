@@ -650,7 +650,7 @@ class EnsembleModel(Dummy):
           #if modelIn not in modelsOnHold:
           # get job that just finished to gather the results
           finishedRun = jobHandler.getFinished(jobIdentifier = modelIn+utils.returnIdSeparator()+identifier, uniqueHandler=self.name+identifier)
-          self.raiseADebug('TIMING ensembleStep "{}" collected: JobID "{}"'.format(self.name,finishedJob.identifier))
+          self.raiseADebug('TIMING ensembleStep "{}" collected: JobID "{}"'.format(self.name,finishedRun.identifier))
           evaluation = finishedRun[0].getEvaluation()
           if isinstance(evaluation, Runners.Error):
             # the model failed
@@ -691,7 +691,7 @@ class EnsembleModel(Dummy):
             for out in gotOutputs[modelCnt].keys():
               residueContainer[modelIn]['residue'][out] = abs(np.asarray(residueContainer[modelIn]['iterValues'][0][out]) - np.asarray(residueContainer[modelIn]['iterValues'][1][out]))
             residueContainer[modelIn]['Norm'] =  np.linalg.norm(np.asarray(residueContainer[modelIn]['iterValues'][1].values())-np.asarray(residueContainer[modelIn]['iterValues'][0].values()))
-          self.raiseADebug('TIMING ensembleStep "{}" collectedDone: JobID "{}"'.format(self.name,finishedJob.identifier))
+          self.raiseADebug('TIMING ensembleStep "{}" collectedDone: JobID "{}"'.format(self.name,finishedRun.identifier))
 
       # if nonlinear system, check the total residue and convergence
       if self.activatePicard:
