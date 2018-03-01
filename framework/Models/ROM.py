@@ -403,16 +403,20 @@ class ROM(Dummy):
           the second will be the output of this model given the specified
           inputs
     """
+    self.raiseADebug('TIMING ROMModel "{}" evaluateSampleStart: jobID "{}"'.format(self.name,kwargs['prefix']))
     Input = self.createNewInput(myInput, samplerType, **kwargs)
     inRun = self._manipulateInput(Input[0])
     # collect results from model run
+    self.raiseADebug('TIMING ROMModel "{}" evaluateSampleRun: jobID "{}"'.format(self.name,kwargs['prefix']))
     result = self._externalRun(inRun)
+    self.raiseADebug('TIMING ROMModel "{}" evaluateSampleFinish: jobID "{}"'.format(self.name,kwargs['prefix']))
     # build realization
     # assure rlz has all metadata
     self._replaceVariablesNamesWithAliasSystem(kwargs['SampledVars'] ,'input',True)
     rlz = dict((var,np.atleast_1d(kwargs[var])) for var in kwargs.keys())
     # update rlz with input space from inRun and output space from result
     rlz.update(dict((var,np.atleast_1d(inRun[var] if var in kwargs['SampledVars'] else result[var])) for var in set(result.keys()+inRun.keys())))
+    self.raiseADebug('TIMING ROMModel "{}" evaluateSampleReturn: jobID "{}"'.format(self.name,kwargs['prefix']))
     return rlz
 
   def reseed(self,seed):
