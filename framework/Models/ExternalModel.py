@@ -248,13 +248,13 @@ class ExternalModel(Dummy):
           the second item will be the output of this model given the specified
           inputs
     """
-    self.raiseADebug('TIMING ExternalModel "{}" evaluateSampleStart: jobID "{}"'.format(self.name,kwargs['prefix']))
+    #self.raiseADebug('TIMING ExternalModel "{}" evaluateSampleStart: jobID "{}"'.format(self.name,kwargs['prefix']))
     Input = self.createNewInput(myInput, samplerType, **kwargs)
     inRun = copy.copy(self._manipulateInput(Input[0][0]))
     # collect results from model run
-    self.raiseADebug('TIMING ExternalModel "{}" evaluateSampleRun: jobID "{}"'.format(self.name,kwargs['prefix']))
+    #self.raiseADebug('TIMING ExternalModel "{}" evaluateSampleRun: jobID "{}"'.format(self.name,kwargs['prefix']))
     result,instSelf = self._externalRun(inRun,Input[1],) #entry [1] is the external model object; it doesn't appear to be needed
-    self.raiseADebug('TIMING ExternalModel "{}" evaluateSampleFinish: jobID "{}"'.format(self.name,kwargs['prefix']))
+    #self.raiseADebug('TIMING ExternalModel "{}" evaluateSampleFinish: jobID "{}"'.format(self.name,kwargs['prefix']))
     # build realization
     ## do it in this order to make sure only the right variables are overwritten
     ## first inRun, which has everything from self.* and Input[*]
@@ -265,7 +265,7 @@ class ExternalModel(Dummy):
     rlz.update(dict((var,np.atleast_1d(val)) for var,val in kwargs.items()))
     ## then get the inputs from SampledVars (overwriting any other entries)
     rlz.update(dict((var,np.atleast_1d(val)) for var,val in kwargs['SampledVars'].items()))
-    self.raiseADebug('TIMING ExternalModel "{}" evaluateSampleReturn: jobID "{}"'.format(self.name,kwargs['prefix']))
+    #self.raiseADebug('TIMING ExternalModel "{}" evaluateSampleReturn: jobID "{}"'.format(self.name,kwargs['prefix']))
     return rlz
 
   def collectOutput(self,finishedJob,output,options=None):

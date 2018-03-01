@@ -346,10 +346,12 @@ class JobHandler(MessageHandler.MessageUser):
     """
     with self.__queueLock:
       if not runner.clientRunner:
-        self.raiseADebug('TIMING JobHandler "JobHandler" putOnNormalQueue: jobID "{}"'.format(runner.metadata['prefix']))
+        if runner.metadata is not None:
+          self.raiseADebug('TIMING JobHandler "JobHandler" putOnNormalQueue: jobID "{}"'.format(runner.metadata['prefix']))
         self.__queue.append(runner)
       else:
-        self.raiseADebug('TIMING JobHandler "JobHandler" putOnClientQueue: jobID "{}"'.format(runner.metadata['prefix']))
+        if runner.metadata is not None:
+          self.raiseADebug('TIMING JobHandler "JobHandler" putOnClientQueue: jobID "{}"'.format(runner.metadata['prefix']))
         self.__clientQueue.append(runner)
       self.__submittedJobs.append(runner.identifier)
 
@@ -639,7 +641,8 @@ class JobHandler(MessageHandler.MessageUser):
               item.args[3].update(kwargs)
 
             self.__running[i] = item
-            self.raiseADebug('TIMING JobHandler "JobHandler" startingNormalRun: jobID "{}"'.format(item.metadata['prefix']))
+            if item.metadata is not None:
+              self.raiseADebug('TIMING JobHandler "JobHandler" startingNormalRun: jobID "{}"'.format(item.metadata['prefix']))
             self.__running[i].start()
             self.__nextId += 1
           else:
@@ -677,7 +680,8 @@ class JobHandler(MessageHandler.MessageUser):
           ## it by calling numRunning.
           with self.__queueLock:
             self.__finished.append(run)
-            self.raiseADebug('TIMING JobHandler "JobHandler" finishedWaitCollect: jobID "{}"'.format(run.metadata['prefix']))
+            if run.metadata is not None:
+              self.raiseADebug('TIMING JobHandler "JobHandler" finishedWaitCollect: jobID "{}"'.format(run.metadata['prefix']))
             runList[i] = None
 
   def startingNewStep(self):
