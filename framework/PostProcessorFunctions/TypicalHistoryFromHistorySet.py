@@ -111,13 +111,13 @@ class TypicalHistoryFromHistorySet(PostProcessorInterfaceBase):
       #array of the pivot values provided in the history
       pivotValues = np.asarray(inputDict[self.pivotParameter][historyNumber])
       #if the desired output pivot value length is (equal to or) longer than the provided history ...
-      #   -> (i.e. I have a year and I want output of a year)
+      #   -> (i.e. I have a year and I want output of a year or more)
       if self.outputLen >= pivotValues[-1]:
         #don't change the shape of this history; it's fine as is
         reshapedData[newHistoryCounter] = self.retrieveHistory(inputDict,historyNumber)
         newHistoryCounter += 1
       #if the provided history is longer than the requested output period
-      #   -> (i.e., I have a year of data and I only want output of 1 year)
+      #   -> (i.e., I have a year of data and I only want output of 1 month)
       else:
         #reshape the history into multiple histories to use
         startPivot = 0
@@ -127,7 +127,7 @@ class TypicalHistoryFromHistorySet(PostProcessorInterfaceBase):
           #create a storage place for each new usable history
           reshapedData[newHistoryCounter] = {}
           # acceptable is if the pivot value is greater than start and less than end
-          extractCondition = np.logical_and(pivotValues>=startPivot, pivotValues<=endPivot)
+          extractCondition = np.logical_and(pivotValues>=startPivot, pivotValues<endPivot) # strictly < endPivot to avoid an extra point
           # extract out the acceptable parts from the pivotValues, and reset the base pivot point to 0
           reshapedData[newHistoryCounter][self.pivotParameter] = np.extract(extractCondition, pivotValues)-startPivot
           # for each feature...
