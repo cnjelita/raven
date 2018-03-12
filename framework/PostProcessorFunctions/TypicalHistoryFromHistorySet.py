@@ -96,6 +96,7 @@ class TypicalHistoryFromHistorySet(PostProcessorInterfaceBase):
       self.outputLen = np.asarray(inputDict['output'][inputDict['output'].keys()[0]][self.pivotParameter])[-1]
 
     ## Check if data is synchronized
+    self.raiseADebug('Checking data synchronization ...')
     referenceHistory = 0
     referenceTimeAxis = inputDict[self.pivotParameter][referenceHistory]
     for hist in range(inputDic[0]['numberRealizations']):
@@ -105,19 +106,20 @@ class TypicalHistoryFromHistorySet(PostProcessorInterfaceBase):
 
     # task: reshape the data into histories with the size of the output I'm looking for
     #data dictionaries have form {historyNumber:{VarName:[data], VarName:[data]}}
+    self.raiseADebug('Collecting typical period intervals ...')
     reshapedData = {}
     newHistoryCounter = 0 #new history tracking labels
     for historyNumber in range(inputDic[0]['numberRealizations']):
       #array of the pivot values provided in the history
       pivotValues = np.asarray(inputDict[self.pivotParameter][historyNumber])
       #if the desired output pivot value length is (equal to or) longer than the provided history ...
-      #   -> (i.e. I have a year and I want output of a year)
+      #   -> (i.e. I have a year and I want output of a year or more)
       if self.outputLen >= pivotValues[-1]:
         #don't change the shape of this history; it's fine as is
         reshapedData[newHistoryCounter] = self.retrieveHistory(inputDict,historyNumber)
         newHistoryCounter += 1
       #if the provided history is longer than the requested output period
-      #   -> (i.e., I have a year of data and I only want output of 1 year)
+      #   -> (i.e., I have a year of data and I only want output of 1 month)
       else:
         #reshape the history into multiple histories to use
         startPivot = 0
@@ -127,7 +129,7 @@ class TypicalHistoryFromHistorySet(PostProcessorInterfaceBase):
           #create a storage place for each new usable history
           reshapedData[newHistoryCounter] = {}
           # acceptable is if the pivot value is greater than start and less than end
-          extractCondition = np.logical_and(pivotValues>=startPivot, pivotValues<=endPivot)
+          extractCondition = np.logical_and(pivotValues>=startPivot, pivotValues<endPivot) # strictly < endPivot to avoid an extra point
           # extract out the acceptable parts from the pivotValues, and reset the base pivot point to 0
           reshapedData[newHistoryCounter][self.pivotParameter] = np.extract(extractCondition, pivotValues)-startPivot
           # for each feature...
@@ -139,6 +141,14 @@ class TypicalHistoryFromHistorySet(PostProcessorInterfaceBase):
           #update new start/end points for grabbing the next history
           startPivot = endPivot
           endPivot += self.outputLen
+    # sanity check: are the history lengths each consistent? If not we will crash later.
+    for i,(k,v) in enumerate(reshapedData.items()):
+      if i==0:
+        shape = v[self.features[0]].shape[0]
+      else:
+        if v[self.features[0]].shape[0] != shape:
+          self.raiseAnError('Not all time intervals were found to have a consistent number of entries!' +\
+                            'Please make sure TypicalHistory training data has constant time stepping and no missing points!')
 
     inputDict['output'] = reshapedData
     self.numHistory = len(inputDict['output'].keys()) #should be same as newHistoryCounter - 1, if that's faster
@@ -148,6 +158,7 @@ class TypicalHistoryFromHistorySet(PostProcessorInterfaceBase):
     # task: split the history into multiple subsequences so that the typical history can be constructed
     #  -> i.e., split the year history into multiple months, so we get a typical January, February, ..., hence a typical year
     # start by identifying the subsequences within the histories
+    self.raiseADebug('Creating subsequences ...')
     self.subsequence = [] #list of start/stop pivot values for the subsequences
     startLocation = 0     #tracks the point in the history being evaluated
     n = 0                 #counts the number of the subsequence
@@ -188,6 +199,7 @@ class TypicalHistoryFromHistorySet(PostProcessorInterfaceBase):
       for feature in self.features:
         subseqData[index][feature] = np.zeros(shape=(self.numHistory,len(subseqData[index][self.pivotParameter])))
         for h, historyNumber in enumerate(inputDict['output'].keys()):
+          # if we're at the end of our pivot values (end of "time"), then extract and add extra entry on the end
           if self.pivotValues[-1] == self.subsequence[index][1]:
             #TODO this is doing the right action, but it's strange that we need to add one extra element.
             #  Maybe this should be fixed where we set the self.subsequence[index][1] for the last index, instead of patched here
@@ -196,6 +208,7 @@ class TypicalHistoryFromHistorySet(PostProcessorInterfaceBase):
           else:
             subseqData[index][feature][h,:] = np.extract(extractCondition, inputDict['output'][historyNumber][feature])
 
+    self.raiseADebug('Finding most typical subsequences ...')
     # task: compare CDFs to find the nearest match to the collective time's standard CDF (see the paper ref'd in the manual)
     # start by building the CDFs in the same structure as subseqData
     # for the record, defaultdict is a dict that auto-populates using the constructer given if an element isn't present
@@ -231,6 +244,7 @@ class TypicalHistoryFromHistorySet(PostProcessorInterfaceBase):
       for feature in self.features:
         typicalDataHistories[index][feature] = subseqData[index][feature][smallestDeltaIndex,:]
     # now collapse the data into the typical history
+    self.raiseADebug('Reconstructing single full history ...')
     typicalData = {}
     typicalData[self.pivotParameter] = np.concatenate(list(typicalDataHistories[index][self.pivotParameter] for index in range(numParallelSubsequences)))
     for feature in self.features:
@@ -254,6 +268,7 @@ class TypicalHistoryFromHistorySet(PostProcessorInterfaceBase):
     outputDict['dims']={}
     for var in self.features:
       outputDict['dims'][var]=[self.pivotParameter]
+    self.raiseADebug('Complete!')
     return outputDict
 
   def __computeECDF(self, data, binEdgesIn):
