@@ -77,6 +77,9 @@ class JobHandler(MessageHandler.MessageUser):
     self.sleepTime  = 0.005
     self.completed = False
 
+    ## Determines whether to collect and print job timing summaries at the end of job runs.
+    self.__profileJobs = False
+
     ## Prevents the pending queue from growing indefinitely, but also allowing
     ## extra jobs to be queued to prevent starving parallelized environments of
     ## jobs.
@@ -128,7 +131,12 @@ class JobHandler(MessageHandler.MessageUser):
     """
     self.runInfoDict = runInfoDict
     self.messageHandler = messageHandler
-    self.maxQueueSize = runInfoDict.get('maxQueueSize',runInfoDict.get('batchSize'))
+    # set the maximum queue size (number of jobs to queue past the running number)
+    self.maxQueueSize = runInfoDict['maxQueueSize']
+    # defaults to None; if None, then use batchSize instead
+    if self.maxQueueSize is None:
+      self.maxQueueSize = runInfoDict['batchSize']
+    # if requsted max size less than 1, we can't do that, so take 1 instead
     if self.maxQueueSize < 1:
       self.raiseAWarning('maxQueueSize was set to be less than 1!  Setting to 1...')
       self.maxQueueSize = 1
@@ -149,7 +157,7 @@ class JobHandler(MessageHandler.MessageUser):
       returnCode = running.getReturnCode()
       if returnCode != 0:
         metadataFailedRun = running.getMetadata()
-        metadataToKeep    = metadataFailedRun
+        metadataToKeep = metadataFailedRun
         if metadataFailedRun is not None:
           metadataKeys      = metadataFailedRun.keys()
           if 'jobHandler' in metadataKeys:
@@ -289,6 +297,7 @@ class JobHandler(MessageHandler.MessageUser):
       self.cleanJobQueue()
       ## TODO May want to revisit this:
       ## http://stackoverflow.com/questions/29082268/python-time-sleep-vs-event-wait
+      ## probably when we move to Python 3.
       time.sleep(self.sleepTime)
 
   def addJob(self, args, functionToRun, identifier, metadata=None, modulesToImport = [], forceUseThreads = False, uniqueHandler="any", clientQueue = False):
@@ -323,7 +332,8 @@ class JobHandler(MessageHandler.MessageUser):
       internalJob = Runners.SharedMemoryRunner(self.messageHandler, args,
                                                functionToRun,
                                                identifier, metadata,
-                                               uniqueHandler)
+                                               uniqueHandler,
+                                               profile=self.__profileJobs)
     else:
       skipFunctions = [utils.metaclass_insert(abc.ABCMeta,BaseType)]
       internalJob = Runners.DistributedMemoryRunner(self.messageHandler,
@@ -331,7 +341,8 @@ class JobHandler(MessageHandler.MessageUser):
                                                     functionToRun,
                                                     modulesToImport, identifier,
                                                     metadata, skipFunctions,
-                                                    uniqueHandler)
+                                                    uniqueHandler,
+                                                    profile=self.__profileJobs)
 
     # set the client info
     internalJob.clientRunner = clientQueue
@@ -353,6 +364,8 @@ class JobHandler(MessageHandler.MessageUser):
         if runner.metadata is not None:
           self.raiseADebug('TIMING JobHandler "JobHandler" putOnClientQueue: jobID "{}"'.format(runner.metadata['prefix']))
         self.__clientQueue.append(runner)
+      if self.__profileJobs:
+        runner.trackTime('queue')
       self.__submittedJobs.append(runner.identifier)
 
   def addClientJob(self, args, functionToRun, identifier, metadata=None, modulesToImport = [], uniqueHandler="any"):
@@ -544,6 +557,7 @@ class JobHandler(MessageHandler.MessageUser):
       ## delete something it will not shift anything to the left (lower index)
       ## than it.
       for i in reversed(runsToBeRemoved):
+        self.__finished[i].trackTime('collected')
         del self.__finished[i]
     ## end with self.__queueLock
 
@@ -644,6 +658,7 @@ class JobHandler(MessageHandler.MessageUser):
             if item.metadata is not None:
               self.raiseADebug('TIMING JobHandler "JobHandler" startingNormalRun: jobID "{}"'.format(item.metadata['prefix']))
             self.__running[i].start()
+            self.__running[i].trackTime('started')
             self.__nextId += 1
           else:
             break
@@ -657,6 +672,7 @@ class JobHandler(MessageHandler.MessageUser):
             self.__clientRunning[i] = self.__clientQueue.popleft()
             self.raiseADebug('TIMING JobHandler "JobHandler" startingClientRun: jobID "{}"'.format(self.__clientRunning[i].metadata['prefix']))
             self.__clientRunning[i].start()
+            self.__clientRunning[i].trackTime('jobHandler_started')
             self.__nextId += 1
           else:
             break
@@ -682,7 +698,16 @@ class JobHandler(MessageHandler.MessageUser):
             self.__finished.append(run)
             if run.metadata is not None:
               self.raiseADebug('TIMING JobHandler "JobHandler" finishedWaitCollect: jobID "{}"'.format(run.metadata['prefix']))
+            self.__finished[-1].trackTime('jobHandler_finished')
             runList[i] = None
+
+  def setProfileJobs(self,profile=False):
+    """
+      Sets whether profiles for jobs are printed or not.
+      @ In, profile, bool, optional, if True then print timings for jobs when they are garbage collected
+      @ Out, None
+    """
+    self.__profileJobs = profile
 
   def startingNewStep(self):
     """
